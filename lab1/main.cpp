@@ -60,11 +60,14 @@ long long solve(long long a, long long b) {
 }
 
 int main() {
+    setlocale(LC_ALL, ".UTF-8");
+
     long long a, b;
 
     if (!(cin >> a >> b)) return -1;
 
     cout << solve(a, b) << endl;
+    cout << "Мамагулашвили Миранда Нодариевна, 090304-РПИа-о25" << endl;
 
     getchar();
     while(getchar() != '\n');
