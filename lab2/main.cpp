@@ -60,7 +60,6 @@ void multiply_tiled(const dcomplex* A, const dcomplex* B, dcomplex* C) {
 }
 
 int main() {
-    // Настройка кодировки консоли для корректного вывода кириллицы
     SetConsoleCP(1251);
     SetConsoleOutputCP(1251);
 
