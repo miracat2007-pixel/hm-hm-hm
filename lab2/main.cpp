@@ -4,16 +4,19 @@
 #include <chrono>
 #include <iomanip>
 #include <string>
+#include <algorithm>
+#include <cstdlib>
+#include <windows.h>
+#include <openblas/cblas.h>
 
 using namespace std;
-
 
 typedef complex<double> dcomplex;
 
 const int N = 1024;
 const int BLOCK_SIZE = 64; 
 
-// 1.РљР»Р°СЃСЃРёС‡РµСЃРєРѕРµ СѓРјРЅРѕР¶РµРЅРёРµ РїРѕ С„РѕСЂРјСѓР»Рµ
+// 1. Классическое умножение по формуле
 void multiply_ijk(const dcomplex* A, const dcomplex* B, dcomplex* C) {
     for (int i = 0; i < N; ++i) {
         for (int j = 0; j < N; ++j) {
@@ -25,7 +28,20 @@ void multiply_ijk(const dcomplex* A, const dcomplex* B, dcomplex* C) {
         }
     }
 }
-// 2.РћРїС‚РёРјРёР·РёСЂРѕРІР°РЅРЅС‹Р№ Р°Р»РіРѕСЂРёС‚Рј / Tiling
+
+// 2. OpenBLAS  
+void multiply_BLAS(const dcomplex* A, const dcomplex* B, dcomplex* C) {
+    dcomplex alpha(1.0, 0.0), beta(0.0, 0.0);
+    cblas_zgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
+                N, N, N,
+                &alpha,
+                reinterpret_cast<const void*>(A), N,
+                reinterpret_cast<const void*>(B), N,
+                &beta,
+                reinterpret_cast<void*>(C), N);
+}
+
+// 3. Оптимизированный алгоритм / Tiling
 void multiply_tiled(const dcomplex* A, const dcomplex* B, dcomplex* C) {
     for (int ih = 0; ih < N; ih += BLOCK_SIZE) {
         for (int kh = 0; kh < N; kh += BLOCK_SIZE) {
@@ -44,20 +60,20 @@ void multiply_tiled(const dcomplex* A, const dcomplex* B, dcomplex* C) {
 }
 
 int main() {
- 
-    setlocale(LC_ALL, ".UTF-8");
+    // Настройка кодировки консоли для корректного вывода кириллицы
+    SetConsoleCP(1251);
+    SetConsoleOutputCP(1251);
 
     auto* A = new dcomplex[N * N];
     auto* B = new dcomplex[N * N];
     auto* C = new dcomplex[N * N];
 
-  
     for (int i = 0; i < N * N; ++i) {
         A[i] = { (double)rand()/RAND_MAX, (double)rand()/RAND_MAX };
         B[i] = { (double)rand()/RAND_MAX, (double)rand()/RAND_MAX };
     }
 
-    // РўРµРѕСЂРµС‚РёС‡РµСЃРєР°СЏ СЃР»РѕР¶РЅРѕСЃС‚СЊ: c = 2 * n^3
+    // Теоретическая сложность: c = 2 * n^3
     double complexity = 2.0 * N * N * N;
 
     auto run_test = [&](string name, auto func) {
@@ -69,22 +85,26 @@ int main() {
         auto end = chrono::high_resolution_clock::now();
         chrono::duration<double> t = end - start;
         
-        // РџСЂРѕРёР·РІРѕРґРёС‚РµР»СЊРЅРѕСЃС‚СЊ: p = c / t * 10^-6 (MFlops)
+        // Производительность: p = c / t * 10^-6 (MFlops)
         double mflops = (complexity / t.count()) * 1e-6;
         
         cout << left << setw(30) << name 
-             << " | Р’СЂРµРјСЏ: " << fixed << setprecision(4) << t.count() << " СЃРµРє"
-             << " | РџСЂРѕРёР·РІРѕРґРёС‚РµР»СЊРЅРѕСЃС‚СЊ: " << setprecision(2) << mflops << " MFlops" << endl;
+             << " | Время: " << fixed << setprecision(4) << t.count() << " сек"
+             << " | Производительность: " << setprecision(2) << mflops << " MFlops" << endl;
     };
 
+    run_test("1. Классический",         [&]() { multiply_ijk(A, B, C); });
+    run_test("2. BLAS",                 [&]() { multiply_BLAS(A, B, C); });
+    run_test("3. Блочный (Tiling)",     [&]() { multiply_tiled(A, B, C); });
 
-    run_test("1. РљР»Р°СЃСЃРёС‡РµСЃРєРёР№",    [&]() { multiply_ijk(A, B, C); });
-    run_test("2. Р‘Р»РѕС‡РЅС‹Р№ (Tiling)",        [&]() { multiply_tiled(A, B, C); });
-
-    cout << "\nРњР°РјР°РіСѓР»Р°С€РІРёР»Рё РњРёСЂР°РЅРґР° РќРѕРґР°СЂРёРµРІРЅР°" << endl;
-    cout << "Р“СЂСѓРїРїР° Р РџРР°-Рѕ25" << endl;
+    cout << "\nМамагулашвили Миранда Нодариевна" << endl;
+    cout << "Группа РПИА-о25" << endl;
   
     while(getchar() != '\n');
+
+    delete[] A;
+    delete[] B;
+    delete[] C;
 
     return 0;
 }
