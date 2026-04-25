@@ -1,2 +1,2 @@
 Для оптимизации программы и подключения библиотеки OpenBLAS используется следующая строка компиляции:
-g++ main.cpp -o app.exe -I"C:/msys64/mingw64/include" -L"C:/msys64/mingw64/lib" -lopenblas -O3 -march=native
+g++ main.cpp -o app.exe -I"C:/msys64/mingw64/include" -L"C:/msys64/mingw64/lib" -lopenblas -fopenmp -mavx2 -O3 -march=native

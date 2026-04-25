@@ -1,3 +1,4 @@
+#include <windows.h>
 #include <iostream>
 #include <vector>
 #include <complex>
@@ -6,17 +7,17 @@
 #include <string>
 #include <algorithm>
 #include <cstdlib>
-#include <windows.h>
+#include <omp.h>
 #include <openblas/cblas.h>
 
 using namespace std;
 
 typedef complex<double> dcomplex;
 
-const int N = 1024;
+const int N = 4096;
 const int BLOCK_SIZE = 64; 
 
-// 1. Классическое умножение по формуле
+// 1. РќР°РёРІРЅРѕРµ СѓРјРЅРѕР¶РµРЅРёРµ РјР°С‚СЂРёС† (РїРѕСЂСЏРґРѕРє С†РёРєР»РѕРІ i-j-k
 void multiply_ijk(const dcomplex* A, const dcomplex* B, dcomplex* C) {
     for (int i = 0; i < N; ++i) {
         for (int j = 0; j < N; ++j) {
@@ -41,16 +42,23 @@ void multiply_BLAS(const dcomplex* A, const dcomplex* B, dcomplex* C) {
                 reinterpret_cast<void*>(C), N);
 }
 
-// 3. Оптимизированный алгоритм / Tiling
-void multiply_tiled(const dcomplex* A, const dcomplex* B, dcomplex* C) {
+// 3. Р‘Р»РѕС‡РЅРѕРµ СѓРјРЅРѕР¶РµРЅРёРµ/ Tiling
+void multiply_tiled(const dcomplex* __restrict A, const dcomplex* __restrict B, dcomplex* __restrict C) {
+    // РСЃРїРѕР»СЊР·СѓРµРј OpenMP РґР»СЏ СЂР°СЃРїР°СЂР°Р»Р»РµР»РёРІР°РЅРёСЏ РІРЅРµС€РЅРёС… С†РёРєР»РѕРІ
+    // collapse(2) РѕР±СЉРµРґРёРЅСЏРµС‚ РґРІР° С†РёРєР»Р° РІ РѕРґРёРЅ Р±РѕР»СЊС€РѕР№ РїСѓР» Р·Р°РґР°С‡ РґР»СЏ РїРѕС‚РѕРєРѕРІ
+    #pragma omp parallel for collapse(2) schedule(static)
     for (int ih = 0; ih < N; ih += BLOCK_SIZE) {
-        for (int kh = 0; kh < N; kh += BLOCK_SIZE) {
-            for (int jh = 0; jh < N; jh += BLOCK_SIZE) {
+        for (int jh = 0; jh < N; jh += BLOCK_SIZE) {
+            for (int kh = 0; kh < N; kh += BLOCK_SIZE) {
                 for (int i = ih; i < ih + BLOCK_SIZE; ++i) {
+                    int iN = i * N;
                     for (int k = kh; k < kh + BLOCK_SIZE; ++k) {
-                        dcomplex temp = A[i * N + k];
+                        dcomplex temp = A[iN + k];
+                        int kN = k * N;
+                        
+                        #pragma omp simd
                         for (int j = jh; j < jh + BLOCK_SIZE; ++j) {
-                            C[i * N + j] += temp * B[k * N + j];
+                            C[iN + j] += temp * B[kN + j];
                         }
                     }
                 }
@@ -72,7 +80,7 @@ int main() {
         B[i] = { (double)rand()/RAND_MAX, (double)rand()/RAND_MAX };
     }
 
-    // Теоретическая сложность: c = 2 * n^3
+    // РґР»СЏ СѓРјРЅРѕР¶РµРЅРёСЏ РјР°С‚СЂРёС†: c = 2 * n^3
     double complexity = 2.0 * N * N * N;
 
     auto run_test = [&](string name, auto func) {
@@ -84,20 +92,21 @@ int main() {
         auto end = chrono::high_resolution_clock::now();
         chrono::duration<double> t = end - start;
         
-        // Производительность: p = c / t * 10^-6 (MFlops)
+        // РџСЂРѕРёР·РІРѕРґРёС‚РµР»СЊРЅРѕСЃС‚СЊ РІ MFLOPS (РјРёР»Р»РёРѕРЅС‹ РѕРїРµСЂР°С†РёР№ РІ СЃРµРєСѓРЅРґСѓ): p = c / t * 10^-6
         double mflops = (complexity / t.count()) * 1e-6;
         
         cout << left << setw(30) << name 
-             << " | Время: " << fixed << setprecision(4) << t.count() << " сек"
-             << " | Производительность: " << setprecision(2) << mflops << " MFlops" << endl;
+             << " | Р’СЂРµРјСЏ: " << fixed << setprecision(4) << t.count() << " СЃРµРє"
+             << " | РџСЂРѕРёР·РІРѕРґРёС‚РµР»СЊРЅРѕСЃС‚СЊ: " << setprecision(2) << mflops << " MFlops" << endl;
     };
 
-    run_test("1. Классический",         [&]() { multiply_ijk(A, B, C); });
+    run_test("1. РќР°РёРІРЅС‹Р№ Р°Р»РіРѕСЂРёС‚Рј",         [&]() { multiply_ijk(A, B, C); });
     run_test("2. BLAS",                 [&]() { multiply_BLAS(A, B, C); });
-    run_test("3. Блочный (Tiling)",     [&]() { multiply_tiled(A, B, C); });
+    run_test("3. Р‘Р»РѕС‡РЅС‹Р№ (tiling)",     [&]() { multiply_tiled(A, B, C); });
 
-    cout << "\nМамагулашвили Миранда Нодариевна" << endl;
-    cout << "Группа РПИА-о25" << endl;
+    cout << "\nРЎСЂР°РІРЅРµРЅРёРµ РјРµС‚РѕРґРѕРІ Р·Р°РІРµСЂС€РµРЅРѕ" << endl;
+    cout << "РњР°РјР°РіСѓР»Р°С€РІРёР»Рё РњРёСЂР°РЅРґР° РќРѕРґР°СЂРёРµРІРЅР°, 090304-Р РџРР°-Рѕ25" << endl;
+    cout << "РќР°Р¶РјРёС‚Рµ Enter РґР»СЏ РІС‹С…РѕРґР°..." << endl;
   
     while(getchar() != '\n');
 
