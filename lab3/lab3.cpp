@@ -7,48 +7,45 @@
 
 using namespace std;
 
-// --- Функция для Части А ---
-// Генерирует последовательность ребер по строке сгибаний
+// Функция генерации последовательности складок
 string generate_edges(const string& folds) {
     string edges = "";
     for (char fold : folds) {
-        string next_edges = edges;
+        string buf = edges;
         
-        // Инвертируем и разворачиваем предыдущие ребра
-        reverse(next_edges.begin(), next_edges.end());
-        for (char& ch : next_edges) {
+        // Зеркально переворачиваем и инвертируем старый кусок
+        reverse(buf.begin(), buf.end());
+        for (char& ch : buf) {
             ch = (ch == 'К') ? 'О' : 'К';
         }
         
-        // Центральное ребро зависит от типа сгибания
+        // Центральный сгиб зависит от направления
         char center = (fold == 'П') ? 'К' : 'О';
         
-        edges = edges + center + next_edges;
+        edges = edges + center + buf;
     }
     return edges;
 }
 
-// --- Функция для Части Б ---
-// Пытается восстановить сгибания по последовательности ребер
+// Функция восстановления истории сгибаний
 string recover_folds(string edges) {
     string folds = "";
     
     while (!edges.empty()) {
-        // Длина строки ребер для n сгибаний всегда равна 2^n - 1 (нечетное число)
+        // Проверка на корректность длины (всегда 2^n - 1, т.е. нечетное)
         if (edges.length() % 2 == 0) return "НЕ СУЩЕСТВУЕТ";
         
         int mid = edges.length() / 2;
-        char center_edge = edges[mid];
+        char mid_ch = edges[mid];
         
-        // Определяем, какое сгибание дало такое центральное ребро
-        char fold = (center_edge == 'К') ? 'П' : 'З';
+        // Определяем тип сгиба по центральному ребру
+        char fold = (mid_ch == 'К') ? 'П' : 'З';
         folds.push_back(fold);
         
-        // Проверяем, корректна ли правая часть относительно левой
         string left = edges.substr(0, mid);
         string right = edges.substr(mid + 1);
         
-        // Правая часть должна быть зеркальной инверсией левой
+        // Проверяем симметрию половин с инверсией
         reverse(right.begin(), right.end());
         for (char& ch : right) {
             ch = (ch == 'К') ? 'О' : 'К';
@@ -58,11 +55,11 @@ string recover_folds(string edges) {
             return "НЕ СУЩЕСТВУЕТ";
         }
         
-        // Переходим к предыдущему шагу (левая половина — это ребра до последнего сгиба)
+        // Отрезаем хвост и идем на следующий шаг
         edges = left;
     }
     
-    // Так как мы шли с конца (от полной ленты к начальной), разворачиваем результат
+    // Переворачиваем, так как собирали с конца истории
     reverse(folds.begin(), folds.end());
     return folds;
 }
@@ -75,43 +72,42 @@ int main() {
     cout << "ЛАБОРАТОРНАЯ РАБОТА: Сгибание бумажной ленты" << endl;
     cout << "==================================================" << endl;
 
-    // --- ЧАСТЬ А ---
-    cout << "\n[Часть А]" << endl;
+    // Ввод и проверка для прямой задачи
+    cout << "\n[Тест генерации]" << endl;
     string folds_A;
     int edge_index;
     
-    cout << "Введите последовательность сгибаний (например, ППЗ): ";
+    cout << "Последовательность сгибаний (например, ППЗ): ";
     cin >> folds_A;
-    cout << "Введите номер ребра (от 1): ";
+    cout << "Номер искомого ребра (с 1): ";
     cin >> edge_index;
 
     string generated = generate_edges(folds_A);
     
-    cout << "Полная строка ребер: " << generated << endl;
+    cout << "Полученная строка ребер: " << generated << endl;
     if (edge_index >= 1 && edge_index <= (int)generated.length()) {
-        cout << "Тип ребра под номером " << edge_index << ": " << generated[edge_index - 1] << endl;
+        cout << "Ребро №" << edge_index << " -> " << generated[edge_index - 1] << endl;
     } else {
-        cout << "Ошибка: неверный номер ребра!" << endl;
+        cout << "Ошибка: индекс вне диапазона!" << endl;
     }
 
     cout << "--------------------------------------------------" << endl;
 
-    // --- ЧАСТЬ Б ---
-    cout << "\n[Часть Б]" << endl;
+    // Ввод и проверка для обратной задачи
+    cout << "\n[Тест восстановления]" << endl;
     string edges_B;
-    cout << "Введите последовательность ребер (например, ККОООКО): ";
+    cout << "Последовательность ребер (например, ККОООКО): ";
     cin >> edges_B;
 
-    string recovered = recover_folds(edges_B);
-    cout << "Результат восстановления сгибаний: " << recovered << endl;
+    string res = recover_folds(edges_B);
+    cout << "Восстановленные сгибания: " << res << endl;
 
-    // Красивый финал, как ты просила :)
     cout << "\n==================================================" << endl;
-    cout << "Работа завершена успешно." << endl;
+    cout << "Программа завершила работу." << endl;
     cout << "Мамагулашвили Миранда Нодариевна, 090304-РПИа-о25" << endl;
-    cout << "Нажмите Enter для выхода..." << endl;
+    cout << "Для выхода нажмите Enter..." << endl;
     
-    cin.ignore(32767, '\n'); // Очистка буфера
+    cin.ignore(32767, '\n'); 
     while(getchar() != '\n');
 
     return 0;
