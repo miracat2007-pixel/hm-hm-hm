@@ -16,11 +16,11 @@ string generate_edges(const string& folds) {
         // Зеркально переворачиваем и инвертируем старый кусок
         reverse(buf.begin(), buf.end());
         for (char& ch : buf) {
-            ch = (ch == 'К') ? 'О' : 'К';
+            ch = (ch == 'В') ? 'Н' : 'В';
         }
         
         // Центральный сгиб зависит от направления
-        char center = (fold == 'П') ? 'К' : 'О';
+        char center = (fold == 'П') ? 'В' : 'Н';
         
         edges = edges + center + buf;
     }
@@ -39,7 +39,7 @@ string recover_folds(string edges) {
         char mid_ch = edges[mid];
         
         // Определяем тип сгиба по центральному ребру
-        char fold = (mid_ch == 'К') ? 'П' : 'З';
+        char fold = (mid_ch == 'В') ? 'П' : 'З';
         folds.push_back(fold);
         
         string left = edges.substr(0, mid);
@@ -48,7 +48,7 @@ string recover_folds(string edges) {
         // Проверяем симметрию половин с инверсией
         reverse(right.begin(), right.end());
         for (char& ch : right) {
-            ch = (ch == 'К') ? 'О' : 'К';
+            ch = (ch == 'В') ? 'Н' : 'В';
         }
         
         if (left != right) {
@@ -68,9 +68,9 @@ int main() {
     SetConsoleCP(1251);
     SetConsoleOutputCP(1251);
 
-    cout << "==================================================" << endl;
+    cout << "--------------------------------------------------" << endl;
     cout << "ЛАБОРАТОРНАЯ РАБОТА: Сгибание бумажной ленты" << endl;
-    cout << "==================================================" << endl;
+    cout << "--------------------------------------------------" << endl;
 
     // Ввод и проверка для прямой задачи
     cout << "\n[Тест генерации]" << endl;
@@ -96,13 +96,13 @@ int main() {
     // Ввод и проверка для обратной задачи
     cout << "\n[Тест восстановления]" << endl;
     string edges_B;
-    cout << "Последовательность ребер (например, ККОООКО): ";
+    cout << "Последовательность ребер (например, ВВНННВН): ";
     cin >> edges_B;
 
     string res = recover_folds(edges_B);
     cout << "Восстановленные сгибания: " << res << endl;
 
-    cout << "\n==================================================" << endl;
+    cout << "\n--------------------------------------------------" << endl;
     cout << "Программа завершила работу." << endl;
     cout << "Мамагулашвили Миранда Нодариевна, 090304-РПИа-о25" << endl;
     cout << "Для выхода нажмите Enter..." << endl;
