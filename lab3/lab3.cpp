@@ -1,114 +1,153 @@
-#include <windows.h>
 #include <iostream>
-#include <string>
-#include <vector>
-#include <algorithm>
-#include <iomanip>
+#include <stack> // для варианта В
+#include <windows.h>
 
 using namespace std;
 
-// Функция генерации последовательности складок
-string generate_edges(const string& folds) {
-    string edges = "";
-    for (char fold : folds) {
-        string buf = edges;
-        
-        // Зеркально переворачиваем и инвертируем старый кусок
-        reverse(buf.begin(), buf.end());
-        for (char& ch : buf) {
-            ch = (ch == 'В') ? 'Н' : 'В';
-        }
-        
-        // Центральный сгиб зависит от направления
-        char center = (fold == 'П') ? 'В' : 'Н';
-        
-        edges = edges + center + buf;
-    }
-    return edges;
-}
+// Вариант А: стек через обычный массив
+struct StackArray {
+    int data[100]; // тут храним числа
+    int topIndex = -1; // -1 значит стек пока пустой
 
-// Функция восстановления истории сгибаний
-string recover_folds(string edges) {
-    string folds = "";
-    
-    while (!edges.empty()) {
-        // Проверка на корректность длины (всегда 2^n - 1, т.е. нечетное)
-        if (edges.length() % 2 == 0) return "НЕ СУЩЕСТВУЕТ";
-        
-        int mid = edges.length() / 2;
-        char mid_ch = edges[mid];
-        
-        // Определяем тип сгиба по центральному ребру
-        char fold = (mid_ch == 'В') ? 'П' : 'З';
-        folds.push_back(fold);
-        
-        string left = edges.substr(0, mid);
-        string right = edges.substr(mid + 1);
-        
-        // Проверяем симметрию половин с инверсией
-        reverse(right.begin(), right.end());
-        for (char& ch : right) {
-            ch = (ch == 'В') ? 'Н' : 'В';
-        }
-        
-        if (left != right) {
-            return "НЕ СУЩЕСТВУЕТ";
-        }
-        
-        // Отрезаем хвост и идем на следующий шаг
-        edges = left;
+    void push(int value) {
+        topIndex++;
+        data[topIndex] = value;
     }
-    
-    // Переворачиваем, так как собирали с конца истории
-    reverse(folds.begin(), folds.end());
-    return folds;
-}
+
+    void pop() {
+        if (topIndex >= 0) {
+            topIndex--;
+        }
+    }
+
+    int top() {
+        return data[topIndex];
+    }
+
+    bool isEmpty() {
+        return topIndex == -1;
+    }
+};
+
+// Вариант Б: стек через список на указателях
+struct Node {
+    int value;
+    Node* next;
+};
+
+struct StackList {
+    Node* head = nullptr; // верхушка стека
+
+    void push(int val) {
+        Node* newNode = new Node;
+        newNode->value = val;
+        newNode->next = head;
+        head = newNode;
+    }
+
+    void pop() {
+        if (head != nullptr) {
+            Node* temp = head;
+            head = head->next;
+            delete temp; // чтобы память не текла
+        }
+    }
+
+    int top() {
+        return head->value;
+    }
+
+    bool isEmpty() {
+        return head == nullptr;
+    }
+};
 
 int main() {
     SetConsoleCP(1251);
     SetConsoleOutputCP(1251);
+    int n = 6;
+    int A[6] = {1, 3, 2, 5, 3, 4};
+    int result[6]; // массив для ответов
 
-    cout << "--------------------------------------------------" << endl;
-    cout << "ЛАБОРАТОРНАЯ РАБОТА: Сгибание бумажной ленты" << endl;
-    cout << "--------------------------------------------------" << endl;
+    cout << "Исходный массив А: ";
+    for (int i = 0; i < n; i++) {
+        cout << A[i] << " ";
+    }
+    cout << "\n\n";
 
-    // Ввод и проверка для прямой задачи
-    cout << "\n[Тест генерации]" << endl;
-    string folds_A;
-    int edge_index;
-    
-    cout << "Последовательность сгибаний (например, ППЗ): ";
-    cin >> folds_A;
-    cout << "Номер искомого ребра (с 1): ";
-    cin >> edge_index;
-
-    string generated = generate_edges(folds_A);
-    
-    cout << "Полученная строка ребер: " << generated << endl;
-    if (edge_index >= 1 && edge_index <= (int)generated.length()) {
-        cout << "Ребро №" << edge_index << " -> " << generated[edge_index - 1] << endl;
-    } else {
-        cout << "Ошибка: индекс вне диапазона!" << endl;
+    //Вариант А (Массив)
+    StackArray stackA;
+    // идем с конца массива в начало
+    for (int i = n - 1; i >= 0; i--) {
+        // выкидываем все элементы, которые меньше текущего
+        while (!stackA.isEmpty() && stackA.top() <= A[i]) {
+            stackA.pop();
+        }
+        // если стек опустел, значит большего числа справа нет
+        if (stackA.isEmpty()) {
+            result[i] = 0;
+        } else {
+            result[i] = stackA.top(); // нашли ближайшее большее
+        }
+        stackA.push(A[i]); // незабываем добавить текущее число в стек
     }
 
-    cout << "--------------------------------------------------" << endl;
+    cout << "Вариант А (через массив).    Ответ: ";
+    for (int i = 0; i < n; i++) {
+        cout << result[i] << " ";
+    }
+    cout << endl;
 
-    // Ввод и проверка для обратной задачи
-    cout << "\n[Тест восстановления]" << endl;
-    string edges_B;
-    cout << "Последовательность ребер (например, ВВНННВН): ";
-    cin >> edges_B;
 
-    string res = recover_folds(edges_B);
-    cout << "Восстановленные сгибания: " << res << endl;
+    // Вариант Б (Список)
+    StackList stackB;
+    // логика точно такая же, только стек другой
+    for (int i = n - 1; i >= 0; i--) {
+        while (!stackB.isEmpty() && stackB.top() <= A[i]) {
+            stackB.pop();
+        }
+        if (stackB.isEmpty()) {
+            result[i] = 0;
+        } else {
+            result[i] = stackB.top();
+        }
+        stackB.push(A[i]);
+    }
 
-    cout << "\n--------------------------------------------------" << endl;
-    cout << "Программа завершила работу." << endl;
-    cout << "Мамагулашвили Миранда Нодариевна, 090304-РПИа-о25" << endl;
-    cout << "Для выхода нажмите Enter..." << endl;
-    
-    cin.ignore(32767, '\n'); 
-    while(getchar() != '\n');
+    cout << "Вариант Б (через список).    Ответ: ";
+    for (int i = 0; i < n; i++) {
+        cout << result[i] << " ";
+    }
+    cout << endl;
+
+    // чистим список, если там что-то осталось в конце
+    while (!stackB.isEmpty()) {
+        stackB.pop();
+    }
+
+
+    //Вариант В (STL)
+    stack<int> stackC; 
+    for (int i = n - 1; i >= 0; i--) {
+        while (!stackC.empty() && stackC.top() <= A[i]) {
+            stackC.pop();
+        }
+        if (stackC.empty()) {
+            result[i] = 0;
+        } else {
+            result[i] = stackC.top();
+        }
+        stackC.push(A[i]);
+    }
+
+    cout << "Вариант В (STL std::stack).  Ответ: ";
+    for (int i = 0; i < n; i++) {
+        cout << result[i] << " ";
+    }
+    cout << endl;
+
+    cout << "\nГруппа: 090304-РПИа-о25" << endl;
+    cout << "Фамилия: Мамагулашвили Миранда Нодариевна" << endl;
 
     return 0;
 }
