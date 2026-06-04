@@ -1,8 +1,10 @@
 #include <iostream>
 #include <stack> // для варианта В
 #include <windows.h>
+#include <chrono>
 
 using namespace std;
+using namespace chrono;
 
 // Вариант А: стек через обычный массив
 struct StackArray {
@@ -75,33 +77,32 @@ int main() {
     }
     cout << "\n\n";
 
-    //Вариант А (Массив)
+    // Вариант А (Массив) - измерение времени
+    auto startA = high_resolution_clock::now();
     StackArray stackA;
-    // идем с конца массива в начало
     for (int i = n - 1; i >= 0; i--) {
-        // выкидываем все элементы, которые меньше текущего
         while (!stackA.isEmpty() && stackA.top() <= A[i]) {
             stackA.pop();
         }
-        // если стек опустел, значит большего числа справа нет
         if (stackA.isEmpty()) {
             result[i] = 0;
         } else {
-            result[i] = stackA.top(); // нашли ближайшее большее
+            result[i] = stackA.top();
         }
-        stackA.push(A[i]); // незабываем добавить текущее число в стек
+        stackA.push(A[i]);
     }
+    auto endA = high_resolution_clock::now();
+    auto durationA = duration_cast<microseconds>(endA - startA);
 
     cout << "Вариант А (через массив).    Ответ: ";
     for (int i = 0; i < n; i++) {
         cout << result[i] << " ";
     }
-    cout << endl;
+    cout << " | Время: " << durationA.count() << " мкс" << endl;
 
-
-    // Вариант Б (Список)
+    // Вариант Б (Список) - измерение времени
+    auto startB = high_resolution_clock::now();
     StackList stackB;
-    // логика точно такая же, только стек другой
     for (int i = n - 1; i >= 0; i--) {
         while (!stackB.isEmpty() && stackB.top() <= A[i]) {
             stackB.pop();
@@ -113,21 +114,23 @@ int main() {
         }
         stackB.push(A[i]);
     }
+    auto endB = high_resolution_clock::now();
+    auto durationB = duration_cast<microseconds>(endB - startB);
 
     cout << "Вариант Б (через список).    Ответ: ";
     for (int i = 0; i < n; i++) {
         cout << result[i] << " ";
     }
-    cout << endl;
+    cout << " | Время: " << durationB.count() << " мкс" << endl;
 
     // чистим список, если там что-то осталось в конце
     while (!stackB.isEmpty()) {
         stackB.pop();
     }
 
-
-    //Вариант В (STL)
-    stack<int> stackC; 
+    // Вариант В (STL) - измерение времени
+    auto startC = high_resolution_clock::now();
+    stack<int> stackC;
     for (int i = n - 1; i >= 0; i--) {
         while (!stackC.empty() && stackC.top() <= A[i]) {
             stackC.pop();
@@ -139,15 +142,25 @@ int main() {
         }
         stackC.push(A[i]);
     }
+    auto endC = high_resolution_clock::now();
+    auto durationC = duration_cast<microseconds>(endC - startC);
 
     cout << "Вариант В (STL std::stack).  Ответ: ";
     for (int i = 0; i < n; i++) {
         cout << result[i] << " ";
     }
-    cout << endl;
+    cout << " | Время: " << durationC.count() << " мкс" << endl;
+
+    // Вывод времени работы в консоль отдельно
+    cout << "\n========================================" << endl;
+    cout << "ВРЕМЯ РАБОТЫ АЛГОРИТМОВ:" << endl;
+    cout << "========================================" << endl;
+    cout << "Вариант А (массив)    : " << durationA.count() << " микросекунд" << endl;
+    cout << "Вариант Б (список)    : " << durationB.count() << " микросекунд" << endl;
+    cout << "Вариант В (STL)       : " << durationC.count() << " микросекунд" << endl;
+    cout << "========================================" << endl;
 
     cout << "\nГруппа: 090304-РПИа-о25" << endl;
     cout << "Фамилия: Мамагулашвили Миранда Нодариевна" << endl;
-
     return 0;
 }
